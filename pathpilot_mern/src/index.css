@@ -1,1 +1,84 @@
-  
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4913ec;
+  --color-primary-dark: #3a0fb5;
+  --color-background-light: #f6f6f8;
+  --color-neutral-border: #e5e7eb;
+  --color-neutral-text-strong: #111827;
+  --color-neutral-text-subtle: #6b7280;
+
+  --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-heading: "Poppins", sans-serif;
+  --font-display: "Inter", sans-serif;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Poppins', sans-serif;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+}
+
+.login-gradient {
+  background: linear-gradient(135deg, #4913ec 0%, #7c3aed 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #4913ec, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-card {
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid white;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+}
+
+.progress-bar {
+  height: 6px;
+  border-radius: 10px;
+  background: #f3f4f6;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: #22c55e;
+}
+
+.path-card {
+  transition: all 0.3s ease-in-out;
+}
+
+.path-card:hover {
+  transform: translateY(-5px);
+}
+
+.filter-btn.active {
+  background-color: #4913ec;
+  color: white;
+  border-color: #4913ec;
+}
+
+.nav-link-active {
+  color: #4913ec;
+  font-weight: 700;
+  border-color: #4913ec;
+}
+
+.input-modern {
+  @apply w-full px-4 py-3 rounded-xl border bg-gray-50 
+  focus:outline-none focus:ring-2 focus:ring-primary 
+  focus:bg-white transition;
+}
