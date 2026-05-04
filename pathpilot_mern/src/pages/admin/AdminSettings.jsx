@@ -1,71 +1,84 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AdminSidebar from '../../components/admin/AdminSidebar'
 
-export default function UserSettings() {
-  const [form, setForm] = useState({
-    fullName: 'Ram Kurmi',
-    email: 'rkurmi101@rku.ac.in',
-    phone: '+91 9876543210',
-    location: 'Rajkot, GJ',
-    bio: 'B.Tech student passionate about full-stack development.'
+export default function AdminSettings() {
+  const [form, setForm] = useState(() => {
+    try {
+      const c = JSON.parse(sessionStorage.getItem('profile'))
+      if (c) return { fullName: c.name||'', email: c.email||'', phone: c.phone||'', location: c.location||'', bio: c.bio||'', website: c.website||'' }
+    } catch {}
+    return { fullName: localStorage.getItem('userName')||'', email: localStorage.getItem('userEmail')||'', phone: '', location: '', bio: '', website: '' }
   })
-
   const [saved, setSaved] = useState(false)
-
-  // ✅ validation errors
-  const [errors, setErrors] = useState({})
-
+  const [error, setError] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
   const [image, setImage] = useState(null)
   const fileInputRef = useRef(null)
 
-  // ✅ VALIDATION FUNCTION
-  const validate = () => {
-    let newErrors = {}
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/auth/profile', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        setForm({ fullName: data.name||'', email: data.email||'', phone: data.phone||'', location: data.location||'', bio: data.bio||'', website: data.website||'' })
+        if (data.avatar) setImage(data.avatar)
+        sessionStorage.setItem('profile', JSON.stringify(data))
+      })
+      .catch(() => {})
+  }, []);
 
-    if (!form.fullName.trim()) {
-      newErrors.fullName = "Full name is required"
-    }
-
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-      newErrors.email = "Invalid email format"
-    }
-
-    if (!form.phone.trim()) {
-      newErrors.phone = "Phone number is required"
-    } else if (!/^\+?\d{10,13}$/.test(form.phone.replace(/\s/g, ''))) {
-      newErrors.phone = "Invalid phone number"
-    }
-
-    if (!form.location.trim()) {
-      newErrors.location = "Location is required"
-    }
-
-    if (form.bio.length > 150) {
-      newErrors.bio = "Bio must be under 150 characters"
-    }
-
-    setErrors(newErrors)
-
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-
-    if (!validate()) return
-
-    localStorage.setItem("userName", form.fullName)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    const token = localStorage.getItem('token');
+    
+    try {
+      setIsUploading(true);
+      setError('');
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+           name: form.fullName,
+           bio: form.bio,
+           location: form.location,
+           phone: form.phone,
+           website: form.website,
+           avatar: image
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userName", form.fullName);
+        localStorage.setItem("userEmail", form.email);
+        // update session cache too
+        sessionStorage.setItem('profile', JSON.stringify({ ...data, name: form.fullName, email: form.email }))
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        setError(data.message || 'Update failed');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   }
 
+  // ✅ Image change handler (Base64 conversion) - same as UserSettings
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      const imageUrl = URL.createObjectURL(file)
-      setImage(imageUrl)
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -91,7 +104,7 @@ export default function UserSettings() {
 
               <div className="space-y-6">
 
-                {/* AVATAR */}
+                {/* ✅ AVATAR SECTION - Same as UserSettings */}
                 <div className="flex items-center gap-6 mb-8">
                   <div className="w-20 h-20 rounded-3xl overflow-hidden border-4 border-white shadow-md bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-700">
                     {image ? (
@@ -146,7 +159,6 @@ export default function UserSettings() {
                       }
                       className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
                     />
-                    {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                   </div>
 
                   <div>
@@ -161,7 +173,6 @@ export default function UserSettings() {
                       }
                       className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
                     />
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                   </div>
 
                   <div>
@@ -176,7 +187,6 @@ export default function UserSettings() {
                       }
                       className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
                     />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
 
                   <div>
@@ -191,7 +201,21 @@ export default function UserSettings() {
                       }
                       className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
                     />
-                    {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">
+                      Website
+                    </label>
+                    <input
+                      type="url"
+                      value={form.website}
+                      onChange={(e) =>
+                        setForm({ ...form, website: e.target.value })
+                      }
+                      className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
+                      placeholder="https://yourwebsite.com"
+                    />
                   </div>
                 </div>
 
@@ -207,40 +231,35 @@ export default function UserSettings() {
                     }
                     className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none resize-none"
                   ></textarea>
-                  {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
                 </div>
               </div>
             </div>
 
-            {/* PASSWORD (no validation added to keep UI same) */}
+            {/* PASSWORD */}
             <div className="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-8 pb-4 border-b border-gray-100">
-                Change Password
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
+                Password & Security
               </h2>
-
-              <div className="space-y-6">
-                {['Current Password', 'New Password', 'Confirm New Password'].map((label, i) => (
-                  <div key={i}>
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">
-                      {label}
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-primary/20 border-none"
-                    />
-                  </div>
-                ))}
-              </div>
+              <p className="text-gray-500 mb-6 text-sm">
+                For security reasons, password changes are handled securely via email OTP verification. 
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.href = '/forgot-password'}
+                className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-2xl w-full sm:w-auto transition-all"
+              >
+                Reset Password
+              </button>
             </div>
 
             {/* BUTTON */}
             <div className="flex items-center gap-4">
               <button
                 type="submit"
-                className="px-8 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95"
+                disabled={isUploading}
+                className="px-8 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
               >
-                Save Changes
+                {isUploading ? 'Saving...' : 'Save Changes'}
               </button>
 
               {saved && (
@@ -248,7 +267,16 @@ export default function UserSettings() {
                   <span className="material-icons-round text-sm">
                     check_circle
                   </span>
-                  Saved successfully!
+                  Profile updated successfully!
+                </span>
+              )}
+
+              {error && (
+                <span className="flex items-center gap-2 text-red-500 font-bold text-sm">
+                  <span className="material-icons-round text-sm">
+                    error
+                  </span>
+                  {error}
                 </span>
               )}
             </div>
