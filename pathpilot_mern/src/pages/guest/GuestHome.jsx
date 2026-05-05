@@ -1,4 +1,3 @@
-  
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import GuestNavbar from '../../components/guest/GuestNavbar';
